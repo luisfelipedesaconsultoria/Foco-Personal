@@ -1,51 +1,56 @@
-# Foco Personal
+# Painel
 
-App para personal trainers gerenciarem alunos: treinos, avaliações, corrida,
-frequência cardíaca via Bluetooth (braceletes COOSPO e qualquer monitor BLE
-padrão), chat, financeiro e análise de vídeo. Três painéis: admin, personal
-(treinador) e aluno.
+App para personal trainers gerenciarem a relação com alunos (feed social individual, avaliação física + relatórios periódicos, pagamentos). Ver o brief completo de produto para decisões e arquitetura.
 
-React + Vite + Tailwind, com Supabase como backend (multi-tenant: cada
-personal é um `tenant`).
+Protótipo atual: HTML/CSS/JS vanilla, sem framework. Roda em qualquer hosting estático. Já deployado neste repositório via Vercel.
 
 ## Estrutura
 
 ```
-src/
-  pages/admin/       painel do dono da plataforma (tenants, billing, biblioteca)
-  pages/personal/    painel do treinador (alunos, treinos, monitor ao vivo, financeiro)
-  pages/aluno/       app do aluno (treino do dia, corrida, cardio, progresso)
-  lib/                acesso a dados (Supabase), cálculo de calorias/zonas de FC
-  hooks/               autenticação, monitor de frequência cardíaca Bluetooth
-supabase/migrations/   migrações SQL versionadas
+index.html
+style.css
+app.js
+manifest.json
+firebase-config.js          # chaves públicas do Firebase (placeholder)
+firebase-messaging-sw.js    # service worker do push (placeholder)
+functions/                  # Netlify Functions (referência original)
+  send-notification.js
+  invite-student.js
+api/                        # Vercel Serverless Functions (usadas no deploy atual)
+  send-notification.js      # já ligado ao Supabase (resolve audiência -> push_token)
+  invite-student.js         # já ligado ao Supabase (grava aluno na tabela `alunos`)
+  save-push-token.js        # salva o token de push do aluno logado (Firebase ID token verificado)
+lib/
+  supabase-admin.js         # cliente Supabase server-side (service_role key) + bootstrap do treinador único
+supabase/
+  migrations/0001_init.sql  # schema completo (treinadores, alunos, periodos, notificacoes, pagamentos)
+vercel.json                 # reescreve /.netlify/functions/* -> /api/* (app.js não precisou mudar)
 ```
 
-## Desenvolvimento
+O app já funciona em **modo demonstração** sem nenhuma credencial configurada: login cai no fallback "Continuar em modo demonstração", envio de notificação e cadastro de aluno mostram feedback de demo, e nada quebra.
 
-```
-pnpm install
-pnpm dev
-```
+## Setup para sair do modo demonstração
+
+Nenhuma chave deve ser colada em chat — todas vão direto nas variáveis de ambiente do provedor de deploy (Vercel: Project Settings → Environment Variables).
+
+1. **Firebase** — criar projeto em https://console.firebase.google.com, ativar Authentication (método Email link) e Cloud Messaging.
+   - Preencher `firebase-config.js` com as chaves públicas (Project Settings → General → Web app) e a VAPID key (Project Settings → Cloud Messaging → Web Push certificates). Repetir as mesmas chaves em `firebase-messaging-sw.js`.
+   - Gerar a chave de conta de serviço (Project Settings → Service Accounts → Generate new private key) e colar o JSON inteiro (uma linha) na env var `FIREBASE_SERVICE_ACCOUNT` do Vercel — **nunca** em arquivo versionado.
+
+2. **Supabase** — criar projeto em https://supabase.com (free tier), depois:
+   - No SQL Editor do projeto, colar e rodar o conteúdo de `supabase/migrations/0001_init.sql` (cria as 5 tabelas do brief §4, todas com RLS habilitado e nenhuma policy — só a service_role key consegue ler/escrever, o navegador nunca recebe uma chave Supabase).
+   - Em Project Settings → API, pegar a **Project URL** e a **service_role key** (não a `anon`/`public` — essa não é usada neste projeto).
+   - No Vercel: Project Settings → Environment Variables, criar `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` com esses valores.
+   - `api/invite-student.js` e `api/send-notification.js` já estão ligados a essas tabelas (não são mais TODOs): cadastrar aluno grava em `alunos`; enviar notificação resolve a audiência escolhida (todos / presencial / consultoria / aluno específico) e busca os `push_token` salvos; `api/save-push-token.js` recebe o token do aluno depois que ele ativa push em Perfil.
+   - Fase 1 é de um único treinador — a primeira chamada a qualquer uma dessas functions cria automaticamente uma linha em `treinadores` (nome configurável via env var opcional `TREINADOR_NOME`). Quando virar SaaS multi-treinador, troca esse bootstrap por autenticação real do treinador.
+   - Ainda falta: migrar os dados mockados de `app.js` (feed, avaliação, relatórios, pagamentos) para consultas reais — por enquanto essas telas continuam com dados de demonstração fixos mesmo depois de configurar o Supabase.
+
+3. **Asaas** — obter API key para status de pagamento real e geração de link de cobrança/Pix.
+
+4. **LGPD** — implementar a tela de consentimento como gate do primeiro acesso (rascunho de termo no brief, §7 — precisa de revisão jurídica antes de valer legalmente).
+
+5. Remover o seletor "MODO DEMONSTRAÇÃO" do topo da tela antes de abrir para alunos reais — existe só para prototipagem.
 
 ## Deploy
 
-Conectado à Vercel (build automático a cada push na branch `main`). O
-Supabase (URL + chave pública anon) tem um fallback embutido em
-`src/lib/supabase.js` — funciona sem configurar nada, mas
-`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` no provedor de deploy têm
-prioridade se definidas.
-
-## Frequência cardíaca via Bluetooth
-
-Usa a Web Bluetooth API (GATT Heart Rate Service padrão) — não requer SDK
-de fabricante, funciona com qualquer bracelete BLE. Só funciona em
-Chrome/Edge (computador ou Android); no iPhone, o Safari e demais
-navegadores não suportam Web Bluetooth — use o app **Bluefy – Web BLE
-Browser** (App Store) para abrir o site com Bluetooth funcionando.
-
-Dois modos, na tela "Monitor ao vivo" do personal:
-- **Neste aparelho**: conecta vários braceletes direto na tela do
-  personal (presencial), um perfil por aluno — inclusive perfis avulsos,
-  só para aquela sessão.
-- **Sala remota**: cada aluno conecta o próprio bracelete pelo app dele
-  (consultoria online), sincronizado via Supabase Realtime.
+Já conectado ao Vercel (build automático a cada push na branch principal). Painel do projeto: https://vercel.com — procurar pelo projeto `painel-app`.

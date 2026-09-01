@@ -1,15 +1,417 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Foco Personal</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Painel do Aluno</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12141F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="devswitch" id="devswitch">
+  <span>MODO DEMONSTRAÇÃO — visualizar como</span>
+  <div class="devswitch-btns">
+    <button class="active" data-role="aluno">Aluno</button>
+    <button data-role="treinador">Treinador</button>
+  </div>
+</div>
+
+<div class="phone">
+
+  <!-- ================= LOGIN ================= -->
+  <div class="role-screen" id="screen-login">
+    <div class="login-wrap">
+      <div class="login-mark"><span class="dot"></span>PAINEL</div>
+      <div class="login-title">Entrar</div>
+      <div class="login-sub">Sem senha. Você recebe um link de acesso no seu e-mail.</div>
+
+      <div class="field-label" style="margin-top:32px;">E-mail</div>
+      <input class="text-input" type="email" id="loginEmailInput" placeholder="seuemail@exemplo.com">
+      <button class="btn-primary" id="sendLoginLinkBtn">Enviar link de acesso</button>
+      <div class="note" id="loginFeedback"></div>
+
+      <div class="login-divider"><span>ou</span></div>
+      <button class="btn-outline" id="demoContinueBtn">Continuar em modo demonstração</button>
+    </div>
+  </div>
+
+  <!-- ================= CONFIRMANDO LINK ================= -->
+  <div class="role-screen" id="screen-confirming" style="display:none;">
+    <div class="login-wrap">
+      <div class="login-mark"><span class="dot"></span>PAINEL</div>
+      <div class="login-title">Confirmando acesso…</div>
+      <div class="login-sub">Só um instante.</div>
+    </div>
+  </div>
+
+  <!-- ================= ALUNO ================= -->
+  <div class="role-screen" id="screen-aluno" style="display:none;">
+
+    <!-- FEED -->
+    <section class="view active" id="aluno-feed">
+      <header class="hero">
+        <div class="hero-top">
+          <span class="hello">Olá, Rebeca<span class="sub">Consultoria online</span></span>
+          <button class="bell has-unread" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 16v-5a6 6 0 10-12 0v5l-2 2v1h16v-1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21a2 2 0 004 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dot-badge"></span></button>
+        </div>
+      </header>
+
+      <div class="checkin-card" id="checkinCard">
+        <div class="checkin-icon">✓</div>
+        <div class="checkin-text">
+          <div class="checkin-title">Check-in de Agosto</div>
+          <div class="checkin-desc">2 minutos. Ajuda a construir seu relatório do mês.</div>
+        </div>
+        <button class="checkin-btn" id="openCheckinBtn">Responder</button>
+      </div>
+
+      <div class="section-label">Próximo aviso</div>
+      <div class="notif-card featured" id="featuredNotif">
+        <div class="notif-eyebrow">SEGUNDA-FEIRA · 07:00</div>
+        <div class="notif-title">Segunda de partida</div>
+        <div class="notif-desc">Sua semana começa em 2 dias. O painel vai te lembrar automaticamente.</div>
+      </div>
+
+      <div class="section-label">Feed</div>
+      <div id="feedList"></div>
+    </section>
+
+    <!-- AVALIAÇÃO FÍSICA -->
+    <section class="view" id="aluno-avaliacao">
+      <div class="page-title">Avaliação física</div>
+
+      <div class="ring-card">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-track" cx="50" cy="50" r="45"></circle>
+            <circle class="ring-fill" id="ringFillAval" cx="50" cy="50" r="45"></circle>
+          </svg>
+          <div class="ring-center"><div class="ring-num" id="avalScore">84</div><div class="ring-den">ÍNDICE</div></div>
+        </div>
+        <div class="ring-info">
+          <div class="ring-title">Evolução geral</div>
+          <div class="ring-desc" id="avalDesc">-6.3kg desde a avaliação inicial. Última medição em 10 ago.</div>
+        </div>
+      </div>
+
+      <div class="section-label">Comparar período</div>
+      <div class="chip-row" id="avalCompareChips"></div>
+      <div class="compare-grid" id="avalCompareGrid"></div>
+
+      <div class="section-label">Histórico de medições</div>
+      <div id="avalHistory"></div>
+
+      <div class="section-label">Relatórios</div>
+      <div id="reportList"></div>
+
+      <button class="btn-outline" id="newAvalBtn">Nova avaliação</button>
+      <button class="btn-outline" id="exportAvalBtn">Exportar card</button>
+    </section>
+
+    <!-- RELATÓRIO — detalhe interativo (não fica na barra inferior) -->
+    <section class="view" id="aluno-relatorio">
+      <button class="btn-outline back-btn" id="backFromReportBtn">‹ Voltar</button>
+      <div class="page-title" id="reportTitle">Relatório — Julho 2026</div>
+
+      <div class="chip-row" id="reportPeriodChips"></div>
+
+      <div class="kpi-grid" id="reportKpis"></div>
+
+      <div class="section-label">Evolução no período</div>
+      <div class="chart-box"><canvas id="reportChart" height="160"></canvas></div>
+
+      <div class="section-label">Feedback enviado</div>
+      <div id="reportRatings"></div>
+      <div class="quote-card" id="reportQuote"></div>
+
+      <div class="section-label">Pagamentos</div>
+      <div id="reportPayments"></div>
+
+      <div class="section-label">Observações do treinador</div>
+      <div class="notes-card" id="reportNotes"></div>
+
+      <button class="btn-outline" id="downloadReportBtn">Baixar em PDF (opcional)</button>
+    </section>
+
+    <!-- PAGAMENTOS -->
+    <section class="view" id="aluno-pagamentos">
+      <div class="page-title">Pagamentos</div>
+
+      <div class="pay-status-card ok">
+        <div class="pay-status-label">STATUS</div>
+        <div class="pay-status-title">Em dia</div>
+        <div class="pay-status-desc">Próxima cobrança em 12 de agosto — R$ 280,00</div>
+      </div>
+
+      <div class="section-label">Histórico</div>
+      <div id="payHistory"></div>
+    </section>
+
+    <!-- CHECK-IN — fluxo próprio, separado de Avaliação e do chat -->
+    <section class="view" id="aluno-checkin">
+      <div class="checkin-progress"><div class="checkin-progress-fill" id="checkinProgress"></div></div>
+      <button class="btn-outline back-btn" id="closeCheckinBtn">✕ Fechar</button>
+
+      <div class="checkin-step active" data-step="0">
+        <div class="checkin-q-label">1 de 4</div>
+        <div class="checkin-q-title">Como está sua adesão à rotina esse mês?</div>
+        <div class="rate-row" data-field="adesao"></div>
+      </div>
+
+      <div class="checkin-step" data-step="1">
+        <div class="checkin-q-label">2 de 4</div>
+        <div class="checkin-q-title">Como está sua energia e disposição?</div>
+        <div class="rate-row" data-field="energia"></div>
+      </div>
+
+      <div class="checkin-step" data-step="2">
+        <div class="checkin-q-label">3 de 4</div>
+        <div class="checkin-q-title">Sua satisfação com o acompanhamento?</div>
+        <div class="rate-row" data-field="satisfacao"></div>
+      </div>
+
+      <div class="checkin-step" data-step="3">
+        <div class="checkin-q-label">4 de 4</div>
+        <div class="checkin-q-title">Quer contar algo pro seu treinador?</div>
+        <textarea class="text-input" id="checkinTexto" rows="5" placeholder="Como foi seu mês, o que sentiu, dificuldades..."></textarea>
+        <button class="btn-primary" id="submitCheckinBtn">Enviar check-in</button>
+      </div>
+
+      <div class="checkin-step" data-step="done">
+        <div class="checkin-done-icon">✓</div>
+        <div class="checkin-q-title" style="text-align:center;">Check-in enviado</div>
+        <div class="checkin-desc" style="text-align:center; margin-top:8px;">Isso já está refletido na sua Avaliação e vai entrar no próximo relatório.</div>
+        <button class="btn-outline" id="doneCheckinBtn" style="margin-top:24px;">Voltar ao início</button>
+      </div>
+    </section>
+
+    <!-- PERFIL -->
+    <section class="view" id="aluno-perfil">
+      <div class="page-title">Perfil</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Notificações push</div>
+          <div class="settings-desc" id="permStatus">Ainda não ativadas</div>
+        </div>
+        <button class="btn-small" id="permBtn">Ativar</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Token do dispositivo</div>
+          <div class="settings-desc mono" id="tokenBox">—</div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="bottomnav">
+      <button class="active" data-view="aluno-feed"><ic data-icon="home"></ic><span>Feed</span></button>
+      <button data-view="aluno-avaliacao"><ic data-icon="trend"></ic><span>Avaliação</span></button>
+      <button data-view="aluno-pagamentos"><ic data-icon="card"></ic><span>Pagamentos</span></button>
+      <button data-view="aluno-perfil"><ic data-icon="user"></ic><span>Perfil</span></button>
+    </nav>
+  </div>
+
+  <!-- ================= TREINADOR ================= -->
+  <div class="role-screen" id="screen-treinador" style="display:none;">
+
+    <section class="view active" id="tr-inicio">
+      <header class="hero">
+        <div class="hero-top">
+          <span class="hello">Painel do treinador<span class="sub">24 alunos ativos</span></span>
+        </div>
+
+        <div class="ring-card">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-track" cx="50" cy="50" r="45"></circle>
+              <circle class="ring-fill" id="ringFillTr" cx="50" cy="50" r="45"></circle>
+            </svg>
+            <div class="ring-center"><div class="ring-num">87%</div><div class="ring-den">EM DIA</div></div>
+          </div>
+          <div class="ring-info">
+            <div class="ring-title">Engajamento da base</div>
+            <div class="ring-desc">21 de 24 alunos abriram o último aviso enviado.</div>
+          </div>
+        </div>
+      </header>
+
+      <button class="btn-primary" id="composeNotifBtn">+ Nova notificação</button>
+      <button class="btn-outline" id="publishReportBtn">Publicar relatório de período</button>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num">24</div><div class="stat-lbl">Alunos ativos</div></div>
+        <div class="stat-card"><div class="stat-num">3</div><div class="stat-lbl">Pagamentos pendentes</div></div>
+        <div class="stat-card"><div class="stat-num">2</div><div class="stat-lbl">Avisos agendados</div></div>
+        <div class="stat-card"><div class="stat-num">18</div><div class="stat-lbl">Push entregues (7d)</div></div>
+      </div>
+      <div class="section-label">Últimos envios</div>
+      <div id="sentLog"></div>
+    </section>
+
+    <section class="view" id="tr-comunidade">
+      <div class="page-title">Comunidade</div>
+      <button class="btn-primary" id="openCadastroBtn" style="margin-bottom:16px;">+ Cadastrar aluno</button>
+      <div id="alunoListTr"></div>
+    </section>
+
+    <!-- CADASTRO MANUAL — gera link real de acesso -->
+    <section class="view" id="tr-cadastro">
+      <button class="btn-outline back-btn" id="backFromCadastroBtn">‹ Voltar</button>
+      <div class="page-title">Cadastrar aluno</div>
+
+      <div class="field-label">Nome completo</div>
+      <input class="text-input" id="cadNome" placeholder="Nome do aluno">
+
+      <div class="field-label">E-mail</div>
+      <input class="text-input" type="email" id="cadEmail" placeholder="email@exemplo.com">
+
+      <div class="field-label">Telefone</div>
+      <input class="text-input" id="cadTelefone" placeholder="(00) 00000-0000">
+
+      <div class="field-label">Tipo de atendimento</div>
+      <select class="select-input" id="cadTipo">
+        <option>Consultoria online</option>
+        <option>Presencial</option>
+      </select>
+
+      <button class="btn-primary" id="gerarLinkBtn">Gerar link de acesso</button>
+
+      <div id="cadResultado" style="display:none; margin-top:16px;">
+        <div class="field-label">Link gerado — envie você mesmo pro aluno</div>
+        <div class="link-box" id="cadLinkBox"></div>
+        <button class="btn-outline" id="copyLinkBtn">Copiar link</button>
+      </div>
+      <div class="note" id="cadFeedback"></div>
+    </section>
+
+    <section class="view" id="tr-financeiro">
+      <div class="page-title">Financeiro</div>
+      <div class="stat-scroll">
+        <div class="stat-chip accent"><div class="sc-val">21</div><div class="sc-lbl">EM DIA</div></div>
+        <div class="stat-chip"><div class="sc-val">3</div><div class="sc-lbl">PENDENTES</div></div>
+        <div class="stat-chip"><div class="sc-val">R$ 6.7k</div><div class="sc-lbl">PREVISTO/MÊS</div></div>
+      </div>
+      <div class="section-label">Pendências</div>
+      <div id="finList"></div>
+    </section>
+
+    <section class="view" id="tr-notif">
+      <div class="page-title">Nova notificação</div>
+      <div class="field-label">Destinatários</div>
+      <select class="select-input" id="audienceSelect">
+        <option>Todos os alunos</option>
+        <option>Somente presencial</option>
+        <option>Somente consultoria online</option>
+        <option value="especifico">Aluno específico</option>
+      </select>
+      <div id="studentPicker" class="student-picker" style="display:none;"></div>
+
+      <div class="field-label">Modelo</div>
+      <select class="select-input" id="templateSelect">
+        <option value="custom">Personalizada</option>
+        <option value="motiv">Motivacional de segunda</option>
+        <option value="pag">Lembrete de pagamento</option>
+        <option value="valid">Validação semanal</option>
+      </select>
+
+      <div class="field-label">Título</div>
+      <input class="text-input" id="notifTitleInput" placeholder="Ex: Sua semana começa agora">
+
+      <div class="field-label">Mensagem</div>
+      <textarea class="text-input" id="notifBodyInput" rows="3" placeholder="Texto que aparece no card e no push"></textarea>
+
+      <div class="field-label">Agendar</div>
+      <div class="chip-row">
+        <button class="chip" data-day="1" data-time="07:00">Seg · 07:00</button>
+        <button class="chip" data-day="3" data-time="12:00">Qua · 12:00</button>
+        <button class="chip" data-day="5" data-time="18:00">Sex · 18:00</button>
+      </div>
+      <input class="text-input" type="datetime-local" id="scheduleInput" style="margin-top:8px;">
+
+      <div class="field-label">Pré-visualização — como o aluno vê</div>
+      <div class="notif-card featured preview" id="previewCard">
+        <div class="notif-eyebrow">PRÓXIMO AVISO</div>
+        <div class="notif-title" id="previewTitle">Título aparece aqui</div>
+        <div class="notif-desc" id="previewBody">A mensagem aparece aqui conforme você digita.</div>
+      </div>
+
+      <button class="btn-primary" id="sendBtn">Enviar agora</button>
+      <button class="btn-outline" id="scheduleBtn">Agendar envio</button>
+      <button class="btn-outline" id="backFromNotifBtn">Voltar</button>
+      <div class="note" id="sendFeedback"></div>
+    </section>
+
+    <section class="view" id="tr-perfil">
+      <div class="page-title">Perfil</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Conexão Firebase</div><div class="settings-desc" id="fbStatus">Config não detectada — ver firebase-config.js</div></div>
+      </div>
+    </section>
+
+    <!-- PUBLICAR RELATÓRIO — dispara push automático -->
+    <section class="view" id="tr-publicar">
+      <button class="btn-outline back-btn" id="backFromPublishBtn">‹ Voltar</button>
+      <div class="page-title">Publicar relatório</div>
+
+      <div class="field-label">Aluno</div>
+      <select class="select-input" id="publishStudentSelect"></select>
+
+      <div class="field-label">Período</div>
+      <select class="select-input" id="publishPeriodSelect">
+        <option>Junho 2026</option>
+        <option>Julho 2026</option>
+        <option selected>Agosto 2026</option>
+      </select>
+
+      <div class="notif-card featured preview" style="margin-top:16px;">
+        <div class="notif-eyebrow">PUSH AUTOMÁTICO</div>
+        <div class="notif-title">Seu relatório está disponível</div>
+        <div class="notif-desc">O relatório de <span id="publishPeriodPreview">Agosto 2026</span> já pode ser visto no app. Toque para abrir.</div>
+      </div>
+
+      <button class="btn-primary" id="confirmPublishBtn">Publicar e notificar</button>
+      <div class="note" id="publishFeedback"></div>
+    </section>
+
+    <nav class="bottomnav">
+      <button class="active" data-view="tr-inicio"><ic data-icon="home"></ic><span>Início</span></button>
+      <button data-view="tr-comunidade"><ic data-icon="users"></ic><span>Comunidade</span></button>
+      <button data-view="tr-financeiro"><ic data-icon="card"></ic><span>Financeiro</span></button>
+      <button data-view="tr-perfil"><ic data-icon="user"></ic><span>Perfil</span></button>
+    </nav>
+  </div>
+
+  <!-- ============ SHEETS / MODAIS (compartilhados) ============ -->
+  <div class="overlay" id="pushPrimeSheet">
+    <div class="sheet">
+      <div class="sheet-icon"><ic data-icon="bell" style="width:22px;height:22px;color:#FF7A45;"></ic></div>
+      <div class="sheet-title">Ativar avisos</div>
+      <div class="sheet-desc">Vamos te lembrar da sua rotina toda semana — treino, pagamento e validação, direto na tela do celular.</div>
+      <button class="btn-primary" id="primeAcceptBtn">Ativar notificações</button>
+      <button class="btn-outline" id="primeDismissBtn">Agora não</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="confirmSendSheet">
+    <div class="sheet">
+      <div class="sheet-title">Confirmar envio</div>
+      <div class="sheet-desc" id="confirmSendDesc">Isso vai enviar para todos os alunos ativos. Confirma?</div>
+      <button class="btn-primary" id="confirmSendBtn">Confirmar e enviar</button>
+      <button class="btn-outline" id="cancelSendBtn">Cancelar</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
 </html>
