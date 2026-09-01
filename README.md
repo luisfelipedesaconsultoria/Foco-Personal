@@ -1,45 +1,51 @@
-# Painel
+# Foco Personal
 
-App para personal trainers gerenciarem a relação com alunos (feed social individual, avaliação física + relatórios periódicos, pagamentos). Ver o brief completo de produto para decisões e arquitetura.
+App para personal trainers gerenciarem alunos: treinos, avaliações, corrida,
+frequência cardíaca via Bluetooth (braceletes COOSPO e qualquer monitor BLE
+padrão), chat, financeiro e análise de vídeo. Três painéis: admin, personal
+(treinador) e aluno.
 
-Protótipo atual: HTML/CSS/JS vanilla, sem framework. Roda em qualquer hosting estático. Já deployado neste repositório via Vercel.
+React + Vite + Tailwind, com Supabase como backend (multi-tenant: cada
+personal é um `tenant`).
 
 ## Estrutura
 
 ```
-index.html
-style.css
-app.js
-manifest.json
-firebase-config.js          # chaves públicas do Firebase (placeholder)
-firebase-messaging-sw.js    # service worker do push (placeholder)
-functions/                  # Netlify Functions (referência original)
-  send-notification.js
-  invite-student.js
-api/                        # Vercel Serverless Functions (usadas no deploy atual)
-  send-notification.js
-  invite-student.js
-vercel.json                 # reescreve /.netlify/functions/* -> /api/* (app.js não precisou mudar)
+src/
+  pages/admin/       painel do dono da plataforma (tenants, billing, biblioteca)
+  pages/personal/    painel do treinador (alunos, treinos, monitor ao vivo, financeiro)
+  pages/aluno/       app do aluno (treino do dia, corrida, cardio, progresso)
+  lib/                acesso a dados (Supabase), cálculo de calorias/zonas de FC
+  hooks/               autenticação, monitor de frequência cardíaca Bluetooth
+supabase/migrations/   migrações SQL versionadas
 ```
 
-O app já funciona em **modo demonstração** sem nenhuma credencial configurada: login cai no fallback "Continuar em modo demonstração", envio de notificação e cadastro de aluno mostram feedback de demo, e nada quebra.
+## Desenvolvimento
 
-## Setup para sair do modo demonstração
-
-Nenhuma chave deve ser colada em chat — todas vão direto nas variáveis de ambiente do provedor de deploy (Vercel: Project Settings → Environment Variables).
-
-1. **Firebase** — criar projeto em https://console.firebase.google.com, ativar Authentication (método Email link) e Cloud Messaging.
-   - Preencher `firebase-config.js` com as chaves públicas (Project Settings → General → Web app) e a VAPID key (Project Settings → Cloud Messaging → Web Push certificates). Repetir as mesmas chaves em `firebase-messaging-sw.js`.
-   - Gerar a chave de conta de serviço (Project Settings → Service Accounts → Generate new private key) e colar o JSON inteiro (uma linha) na env var `FIREBASE_SERVICE_ACCOUNT` do Vercel — **nunca** em arquivo versionado.
-
-2. **Supabase** — criar projeto em https://supabase.com e aplicar o schema mínimo (ver brief, §4): `treinadores`, `alunos`, `periodos`, `notificacoes`, `pagamentos`, todos amarrados a `treinador_id` (schema multi-tenant desde já, mesmo com um único treinador usando por enquanto). Ligar `api/send-notification.js` e `api/invite-student.js` à consulta real (hoje são TODOs).
-
-3. **Asaas** — obter API key para status de pagamento real e geração de link de cobrança/Pix.
-
-4. **LGPD** — implementar a tela de consentimento como gate do primeiro acesso (rascunho de termo no brief, §7 — precisa de revisão jurídica antes de valer legalmente).
-
-5. Remover o seletor "MODO DEMONSTRAÇÃO" do topo da tela antes de abrir para alunos reais — existe só para prototipagem.
+```
+pnpm install
+pnpm dev
+```
 
 ## Deploy
 
-Já conectado ao Vercel (build automático a cada push na branch principal). Painel do projeto: https://vercel.com — procurar pelo projeto `painel-app`.
+Conectado à Vercel (build automático a cada push na branch `main`). O
+Supabase (URL + chave pública anon) tem um fallback embutido em
+`src/lib/supabase.js` — funciona sem configurar nada, mas
+`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` no provedor de deploy têm
+prioridade se definidas.
+
+## Frequência cardíaca via Bluetooth
+
+Usa a Web Bluetooth API (GATT Heart Rate Service padrão) — não requer SDK
+de fabricante, funciona com qualquer bracelete BLE. Só funciona em
+Chrome/Edge (computador ou Android); no iPhone, o Safari e demais
+navegadores não suportam Web Bluetooth — use o app **Bluefy – Web BLE
+Browser** (App Store) para abrir o site com Bluetooth funcionando.
+
+Dois modos, na tela "Monitor ao vivo" do personal:
+- **Neste aparelho**: conecta vários braceletes direto na tela do
+  personal (presencial), um perfil por aluno — inclusive perfis avulsos,
+  só para aquela sessão.
+- **Sala remota**: cada aluno conecta o próprio bracelete pelo app dele
+  (consultoria online), sincronizado via Supabase Realtime.
