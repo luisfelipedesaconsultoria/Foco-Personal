@@ -6,6 +6,7 @@
 
 const admin = require('firebase-admin');
 const { getSupabaseAdmin, getOrCreateDefaultTreinador } = require('../lib/supabase-admin');
+const { verifyRequestAuth } = require('../lib/auth-server');
 
 if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT) {
   admin.initializeApp({
@@ -22,6 +23,20 @@ module.exports = async (req, res) => {
   if (!admin.apps.length) {
     res.status(200).json({ warning: 'Firebase ainda não configurado (FIREBASE_SERVICE_ACCOUNT ausente).' });
     return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    try {
+      const auth = await verifyRequestAuth(req, supabase, getOrCreateDefaultTreinador);
+      if (auth.role !== 'treinador') {
+        res.status(403).json({ error: 'Só o treinador pode cadastrar alunos' });
+        return;
+      }
+    } catch (err) {
+      res.status(err.status || 401).json({ error: err.message });
+      return;
+    }
   }
 
   const { nome, email, telefone, tipo } = req.body || {};
@@ -49,7 +64,6 @@ module.exports = async (req, res) => {
     };
     const link = await admin.auth().generateSignInWithEmailLink(email, actionCodeSettings);
 
-    const supabase = getSupabaseAdmin();
     if (supabase) {
       const treinadorId = await getOrCreateDefaultTreinador(supabase);
       const { error: upsertError } = await supabase.from('alunos').upsert(
@@ -69,6 +83,6 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ success: true, uid: user.uid, link, savedToDatabase: !!supabase });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 };

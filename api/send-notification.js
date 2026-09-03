@@ -11,6 +11,7 @@
 
 const admin = require('firebase-admin');
 const { getSupabaseAdmin, getOrCreateDefaultTreinador } = require('../lib/supabase-admin');
+const { verifyRequestAuth } = require('../lib/auth-server');
 
 if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT) {
   admin.initializeApp({
@@ -60,7 +61,12 @@ module.exports = async (req, res) => {
 
   try {
     if (supabase) {
-      treinadorId = await getOrCreateDefaultTreinador(supabase);
+      const auth = await verifyRequestAuth(req, supabase, getOrCreateDefaultTreinador);
+      if (auth.role !== 'treinador') {
+        res.status(403).json({ error: 'Só o treinador pode enviar notificações' });
+        return;
+      }
+      treinadorId = auth.treinadorId;
       if (targetTokens.length === 0 && audience) {
         matchedAlunos = await resolveAudienceAlunos(supabase, treinadorId, audience);
         targetTokens = matchedAlunos.filter((a) => a.push_token).map((a) => a.push_token);
@@ -87,6 +93,6 @@ module.exports = async (req, res) => {
     });
     res.status(200).json({ success: true, sent: response.successCount, failed: response.failureCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 };
